@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -21,6 +20,12 @@ const GroceryInvoiceApp = () => {
   });
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now()}`);
   const [error, setError] = useState(null);
+  
+  // Validation states
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    phone: "",
+  });
 
   useEffect(() => {
     fetchGroceryItems();
@@ -36,6 +41,54 @@ const GroceryInvoiceApp = () => {
     } catch (error) {
       setError('Error fetching grocery items. Please try again.');
       console.error('Error fetching grocery items:', error);
+    }
+  };
+
+  // Validation functions
+  const validateName = (name) => {
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!name.trim()) {
+      return "Name is required";
+    }
+    if (name.trim().length < 2) {
+      return "Name must be at least 2 characters long";
+    }
+    if (name.trim().length > 50) {
+      return "Name must not exceed 50 characters";
+    }
+    if (!nameRegex.test(name.trim())) {
+      return "Name should only contain letters and spaces";
+    }
+    return "";
+  };
+
+  const validatePhone = (phone) => {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phone.trim()) {
+      return "Phone number is required";
+    }
+    if (!phoneRegex.test(phone.trim())) {
+      return "Please enter a valid 10-digit mobile number (starting with 6-9)";
+    }
+    return "";
+  };
+
+  // Handle customer info changes with validation
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setCustomerInfo({ ...customerInfo, name: value });
+    
+    const nameError = validateName(value);
+    setValidationErrors(prev => ({ ...prev, name: nameError }));
+  };
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 10) {
+      setCustomerInfo({ ...customerInfo, phone: value });
+      
+      const phoneError = validatePhone(value);
+      setValidationErrors(prev => ({ ...prev, phone: phoneError }));
     }
   };
 
@@ -179,11 +232,22 @@ const GroceryInvoiceApp = () => {
     setCustomerInfo({ name: "", phone: "", address: "" });
     setInvoiceNumber(`INV-${Date.now()}`);
     setError(null);
+    setValidationErrors({ name: "", phone: "" });
   };
 
   const saveAndDownloadInvoice = async () => {
     if (items.length === 0) {
       alert("No items to generate invoice");
+      return;
+    }
+
+    // Validate customer info before saving
+    const nameError = validateName(customerInfo.name);
+    const phoneError = validatePhone(customerInfo.phone);
+
+    if (nameError || phoneError) {
+      setValidationErrors({ name: nameError, phone: phoneError });
+      alert("Please fix the validation errors before generating the invoice");
       return;
     }
 
@@ -295,20 +359,23 @@ const GroceryInvoiceApp = () => {
                   type="text"
                   placeholder="Customer Name"
                   value={customerInfo.name}
-                  onChange={(e) =>
-                    setCustomerInfo({ ...customerInfo, name: e.target.value })
-                  }
-                  className="form-input"
+                  onChange={handleNameChange}
+                  className={`form-input ${validationErrors.name ? 'error' : ''}`}
                 />
+                {validationErrors.name && (
+                  <div className="validation-error">{validationErrors.name}</div>
+                )}
                 <input
                   type="tel"
                   placeholder="Phone Number"
                   value={customerInfo.phone}
-                  onChange={(e) =>
-                    setCustomerInfo({ ...customerInfo, phone: e.target.value })
-                  }
-                  className="form-input"
+                  onChange={handlePhoneChange}
+                  maxLength="10"
+                  className={`form-input ${validationErrors.phone ? 'error' : ''}`}
                 />
+                {validationErrors.phone && (
+                  <div className="validation-error">{validationErrors.phone}</div>
+                )}
                 <textarea
                   placeholder="Address"
                   value={customerInfo.address}
