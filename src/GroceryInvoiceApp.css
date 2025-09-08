@@ -22,11 +22,228 @@ body {
   min-height: 100vh;
   padding: 1rem;
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  position: relative;
 }
 
 .main-wrapper {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Custom Popup Styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  animation: fadeInOverlay 0.3s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0);
+  }
+  to {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+  }
+}
+
+.popup-container {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 
+              0 0 0 1px rgba(0, 0, 0, 0.05);
+  max-width: 500px;
+  min-width: 400px;
+  margin: 1rem;
+  transform: scale(0.95);
+  opacity: 0;
+  animation: popupSlideIn 0.4s ease-out forwards;
+}
+
+@keyframes popupSlideIn {
+  0% {
+    transform: scale(0.95) translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.popup-icon {
+  font-size: 2.5rem;
+  min-width: fit-content;
+}
+
+.popup-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.popup-content {
+  padding: 1.5rem 2rem;
+}
+
+.popup-message {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 2rem 2rem 2rem;
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f9;
+}
+
+.popup-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  min-width: 80px;
+  text-align: center;
+  outline: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.popup-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.popup-btn-primary {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.popup-btn-primary:hover {
+  background: #374151;
+  border-color: #374151;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.popup-btn-confirm {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.popup-btn-confirm:hover {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.popup-btn-cancel {
+  background: #ffffff;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.popup-btn-cancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Popup type-specific styles */
+.popup-success .popup-header {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border-bottom-color: #bbf7d0;
+}
+
+.popup-success .popup-title {
+  color: #065f46;
+}
+
+.popup-success .popup-icon {
+  color: #10b981;
+}
+
+.popup-error .popup-header {
+  background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%);
+  border-bottom-color: #fecaca;
+}
+
+.popup-error .popup-title {
+  color: #991b1b;
+}
+
+.popup-error .popup-icon {
+  color: #dc2626;
+}
+
+.popup-warning .popup-header {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-bottom-color: #fed7aa;
+}
+
+.popup-warning .popup-title {
+  color: #92400e;
+}
+
+.popup-warning .popup-icon {
+  color: #f59e0b;
+}
+
+.popup-info .popup-header {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-bottom-color: #bfdbfe;
+}
+
+.popup-info .popup-title {
+  color: #1e40af;
+}
+
+.popup-info .popup-icon {
+  color: #3b82f6;
+}
+
+/* Success message component */
+.component-success-message {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-left: 4px solid #10b981;
 }
 
 /* Error message */
@@ -39,6 +256,19 @@ body {
   margin-bottom: 1rem;
   text-align: center;
   font-weight: 500;
+}
+
+/* Component-specific error messages */
+.component-error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-left: 4px solid #dc2626;
 }
 
 /* Header styles */
@@ -210,6 +440,13 @@ body {
   gap: 1rem;
 }
 
+.input-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .form-input,
 .form-textarea {
   background: #ffffff;
@@ -228,6 +465,20 @@ body {
   font-weight: 400;
 }
 
+/* Required field placeholder styling */
+.form-input[required]::placeholder,
+.form-textarea[required]::placeholder {
+  color: #9ca3af;
+  position: relative;
+}
+
+.form-input[required]::placeholder::after,
+.form-textarea[required]::placeholder::after {
+  content: " *";
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
@@ -239,6 +490,12 @@ body {
   background: #f3f4f6;
   color: #6b7280;
   cursor: not-allowed;
+}
+
+.form-input.error,
+.form-textarea.error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .form-textarea {
@@ -256,10 +513,25 @@ body {
   width: 100%;
 }
 
+/* Validation error messages */
+.validation-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  text-align: left;
+  padding-left: 0.5rem;
+  border-left: 3px solid #dc2626;
+  background: #fef2f2;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
 /* Button styles */
 .add-btn,
 .generate-btn,
-.reset-btn {
+.reset-btn,
+.retry-btn {
   padding: 1rem 2rem;
   border-radius: 8px;
   font-size: 1rem;
@@ -292,6 +564,15 @@ body {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
+.add-btn:disabled,
+.generate-btn:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .reset-btn {
   background: #ffffff;
   color: #374151;
@@ -302,6 +583,20 @@ body {
   background: #f9fafb;
   border-color: #9ca3af;
   transform: translateY(-1px);
+}
+
+.retry-btn {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+  margin-top: 0.5rem;
+}
+
+.retry-btn:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
 }
 
 .btn-icon {
@@ -553,6 +848,35 @@ select.form-input:focus {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23000000' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
 }
 
+/* Responsive design for popup */
+@media (max-width: 768px) {
+  .popup-container {
+    min-width: 90%;
+    margin: 0.5rem;
+  }
+  
+  .popup-header {
+    padding: 1.5rem 1.5rem 0.75rem 1.5rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+  
+  .popup-content {
+    padding: 1rem 1.5rem;
+    text-align: center;
+  }
+  
+  .popup-actions {
+    padding: 0.75rem 1.5rem 1.5rem 1.5rem;
+    flex-direction: column;
+  }
+  
+  .popup-btn {
+    width: 100%;
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .header-content {
@@ -619,6 +943,10 @@ select.form-input:focus {
   .content-grid {
     gap: 1rem;
   }
+  
+  .popup-container {
+    min-width: 95%;
+  }
 }
 
 /* Scrollbar styling for webkit browsers */
@@ -653,6 +981,15 @@ select.form-input:focus {
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .customer-card,
 .add-item-card,
 .invoice-card {
@@ -677,6 +1014,7 @@ select.form-input:focus {
 .add-btn:focus,
 .generate-btn:focus,
 .reset-btn:focus,
+.retry-btn:focus,
 .qty-input:focus,
 .delete-btn:focus {
   outline: 2px solid #000000;
@@ -704,5 +1042,9 @@ select.form-input:focus {
   
   .action-buttons {
     display: none;
+  }
+  
+  .popup-overlay {
+    display: none !important;
   }
 }

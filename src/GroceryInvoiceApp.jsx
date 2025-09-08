@@ -3,6 +3,71 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./GroceryInvoiceApp.css";
 
+// Custom Popup Component
+const CustomPopup = ({ isOpen, onClose, type, title, message, onConfirm, showConfirm = false }) => {
+  if (!isOpen) return null;
+
+  const getPopupIcon = () => {
+    switch (type) {
+      case 'success':
+        return '✅';
+      case 'error':
+        return '❌';
+      case 'warning':
+        return '⚠️';
+      case 'info':
+        return 'ℹ️';
+      default:
+        return 'ℹ️';
+    }
+  };
+
+  const getPopupClass = () => {
+    switch (type) {
+      case 'success':
+        return 'popup-success';
+      case 'error':
+        return 'popup-error';
+      case 'warning':
+        return 'popup-warning';
+      case 'info':
+        return 'popup-info';
+      default:
+        return 'popup-info';
+    }
+  };
+
+  return (
+    <div className="popup-overlay">
+      <div className={`popup-container ${getPopupClass()}`}>
+        <div className="popup-header">
+          <div className="popup-icon">{getPopupIcon()}</div>
+          <h3 className="popup-title">{title}</h3>
+        </div>
+        <div className="popup-content">
+          <p className="popup-message">{message}</p>
+        </div>
+        <div className="popup-actions">
+          {showConfirm ? (
+            <>
+              <button className="popup-btn popup-btn-cancel" onClick={onClose}>
+                Cancel
+              </button>
+              <button className="popup-btn popup-btn-confirm" onClick={onConfirm}>
+                OK
+              </button>
+            </>
+          ) : (
+            <button className="popup-btn popup-btn-primary" onClick={onClose}>
+              OK
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const GroceryInvoiceApp = () => {
   const [groceryList, setGroceryList] = useState([]);
   const [items, setItems] = useState([]);
@@ -20,16 +85,60 @@ const GroceryInvoiceApp = () => {
   });
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now()}`);
   const [error, setError] = useState(null);
+  const [selectItemError, setSelectItemError] = useState(null);
+  const [addItemError, setAddItemError] = useState(null);
+  const [addItemSuccess, setAddItemSuccess] = useState(null);
+  
+  // Popup states
+  const [popup, setPopup] = useState({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    onConfirm: null,
+    showConfirm: false
+  });
   
   // Validation states
   const [validationErrors, setValidationErrors] = useState({
     name: "",
     phone: "",
+    address: "",
+  });
+
+  // New item validation states
+  const [newItemValidationErrors, setNewItemValidationErrors] = useState({
+    name: "",
+    price: "",
+    stock: "",
   });
 
   useEffect(() => {
     fetchGroceryItems();
   }, []);
+
+  // Custom popup functions
+  const showPopup = (type, title, message, onConfirm = null, showConfirm = false) => {
+    setPopup({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      showConfirm
+    });
+  };
+
+  const closePopup = () => {
+    setPopup({
+      isOpen: false,
+      type: 'info',
+      title: '',
+      message: '',
+      onConfirm: null,
+      showConfirm: false
+    });
+  };
 
   const fetchGroceryItems = async () => {
     try {
@@ -38,8 +147,10 @@ const GroceryInvoiceApp = () => {
       const data = await response.json();
       setGroceryList(data);
       setError(null);
+      setSelectItemError(null);
     } catch (error) {
-      setError('Error fetching grocery items. Please try again.');
+      setSelectItemError('Unable to load grocery items. Please check your connection and try again.');
+      showPopup('error', 'Connection Error', 'Unable to load grocery items. Please check your connection and try again.');
       console.error('Error fetching grocery items:', error);
     }
   };
@@ -73,6 +184,98 @@ const GroceryInvoiceApp = () => {
     return "";
   };
 
+  const validateAddress = (address) => {
+    if (!address.trim()) {
+      return "Address is required";
+    }
+    if (address.trim().length < 10) {
+      return "Address must be at least 10 characters long";
+    }
+    if (address.trim().length > 200) {
+      return "Address must not exceed 200 characters";
+    }
+    return "";
+  };
+
+  // New item validation functions
+  // const validateItemName = (name) => {
+  //   const itemNameRegex = /^[a-zA-Z0-9\s\-\.]+$/;
+  //   if (!name.trim()) {
+  //     return "Item name is required";
+  //   }
+  //   if (name.trim().length < 2) {
+  //     return "Item name must be at least 2 characters long";
+  //   }
+  //   if (name.trim().length > 100) {
+  //     return "Item name must not exceed 100 characters";
+  //   }
+  //   if (!itemNameRegex.test(name.trim())) {
+  //     return "Item name can only contain letters, numbers, spaces, hyphens, and dots";
+  //   }
+  //   return "";
+  // };
+  const validateItemName = (name) => {
+  const trimmedName = name.trim();
+
+  // 1. Required
+  if (!trimmedName) {
+    return "Item name is required";
+  }
+
+  // 2. Min length
+  if (trimmedName.length < 2) {
+    return "Item name must be at least 2 characters long";
+  }
+
+  // 3. Max length
+  if (trimmedName.length > 45) {
+    return "Item name must not exceed 45 characters";
+  }
+
+  // 4. First 5 characters should be alphabets only
+  const firstFive = trimmedName.substring(0, 5);
+  if (!/^[A-Za-z]+$/.test(firstFive)) {
+    return "First 5 characters must be alphabets only";
+  }
+
+  // 5. From 6th character onwards, allow letters, numbers, spaces, hyphens, and dots
+  const remaining = trimmedName.substring(5);
+  if (remaining && !/^[A-Za-z0-9\s\-\.]+$/.test(remaining)) {
+    return "After the first 5 characters, only letters, numbers, spaces, hyphens, and dots are allowed";
+  }
+
+  return "";
+};
+
+
+  const validatePrice = (price) => {
+    if (!price || price === "") {
+      return "Price is required";
+    }
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      return "Price must be a positive number";
+    }
+    if (priceNum > 99999.99) {
+      return "Price cannot exceed ₹99,999.99";
+    }
+    return "";
+  };
+
+  const validateStock = (stock) => {
+    if (!stock || stock === "") {
+      return "Stock is required";
+    }
+    const stockNum = parseInt(stock, 10);
+    if (isNaN(stockNum) || stockNum < 0) {
+      return "Stock must be a non-negative integer";
+    }
+    if (stockNum > 99999) {
+      return "Stock cannot exceed 99,999 units";
+    }
+    return "";
+  };
+
   // Handle customer info changes with validation
   const handleNameChange = (e) => {
     const value = e.target.value;
@@ -92,7 +295,61 @@ const GroceryInvoiceApp = () => {
     }
   };
 
+  const handleAddressChange = (e) => {
+    const value = e.target.value;
+    setCustomerInfo({ ...customerInfo, address: value });
+    
+    const addressError = validateAddress(value);
+    setValidationErrors(prev => ({ ...prev, address: addressError }));
+  };
+
+  // Handle new item changes with validation
+  const handleNewItemNameChange = (e) => {
+    const value = e.target.value;
+    setNewItem({ ...newItem, name: value });
+    
+    const nameError = validateItemName(value);
+    setNewItemValidationErrors(prev => ({ ...prev, name: nameError }));
+  };
+
+  const handleNewItemPriceChange = (e) => {
+    const value = e.target.value;
+    setNewItem({ ...newItem, price: value });
+    
+    const priceError = validatePrice(value);
+    setNewItemValidationErrors(prev => ({ ...prev, price: priceError }));
+  };
+
+  const handleNewItemStockChange = (e) => {
+    const value = e.target.value;
+    setNewItem({ ...newItem, stock: value });
+    
+    const stockError = validateStock(value);
+    setNewItemValidationErrors(prev => ({ ...prev, stock: stockError }));
+  };
+
   const addGroceryItem = async () => {
+    // Clear previous messages
+    setAddItemError(null);
+    setAddItemSuccess(null);
+
+    // Validate all fields
+    const nameError = validateItemName(newItem.name);
+    const priceError = validatePrice(newItem.price);
+    const stockError = validateStock(newItem.stock);
+
+    setNewItemValidationErrors({
+      name: nameError,
+      price: priceError,
+      stock: stockError,
+    });
+
+    if (nameError || priceError || stockError) {
+      setAddItemError('Please fix the validation errors before adding the item');
+      showPopup('error', 'Validation Error', 'Please fix the validation errors before adding the item');
+      return;
+    }
+
     try {
       // Convert price and stock to numbers
       const payload = {
@@ -100,17 +357,6 @@ const GroceryInvoiceApp = () => {
         price: parseFloat(newItem.price),
         stock: parseInt(newItem.stock, 10),
       };
-
-      // Client-side validation
-      if (!payload.name) {
-        throw new Error('Name is required');
-      }
-      if (isNaN(payload.price) || payload.price <= 0) {
-        throw new Error('Price must be a positive number');
-      }
-      if (isNaN(payload.stock) || payload.stock < 0) {
-        throw new Error('Stock must be a non-negative integer');
-      }
 
       const response = await fetch('http://localhost:5000/api/add-grocery-items-in-store', {
         method: 'POST',
@@ -126,22 +372,31 @@ const GroceryInvoiceApp = () => {
       }
 
       const data = await response.json();
-      setGroceryList([...groceryList, data.item]);
-      setNewItem({ name: "", price: "", stock: "" });
-      setError(null);
+      
+      // Show success popup with confirmation
+      showPopup('success', 'Item Added Successfully', `Item "${payload.name}" has been added successfully to the inventory! Click OK to proceed.`, () => {
+        setGroceryList([...groceryList, data.item]);
+        setNewItem({ name: "", price: "", stock: "" });
+        setAddItemError(null);
+        setNewItemValidationErrors({ name: "", price: "", stock: "" });
+        setAddItemSuccess(`Item "${payload.name}" added successfully to inventory!`);
+        closePopup();
+      }, true);
+      
     } catch (error) {
-      setError(`Error: ${error.message}`);
+      setAddItemError(`Error: ${error.message}`);
+      showPopup('error', 'Error Adding Item', `Error: ${error.message}`);
       console.error('Error adding grocery item:', error);
     }
   };
 
   const addItem = () => {
     if (!selectedItem) {
-      alert("Please select an item!");
+      showPopup('warning', 'No Item Selected', 'Please select an item from the dropdown list!');
       return;
     }
     if (quantity < 1 || quantity > selectedItem.stock) {
-      alert(`Please enter valid quantity (Available: ${selectedItem.stock})`);
+      showPopup('warning', 'Invalid Quantity', `Please enter valid quantity (Available: ${selectedItem.stock})`);
       return;
     }
 
@@ -177,6 +432,7 @@ const GroceryInvoiceApp = () => {
 
     setSelectedItem(null);
     setQuantity(1);
+    showPopup('success', 'Item Added', 'Item has been successfully added to cart!');
   };
 
   const removeItem = (id) => {
@@ -204,7 +460,7 @@ const GroceryInvoiceApp = () => {
       : 0;
 
     if (newQty > availableStock) {
-      alert(`Only ${availableStock} units available in stock`);
+      showPopup('warning', 'Insufficient Stock', `Only ${availableStock} units available in stock`);
       return;
     }
 
@@ -232,22 +488,27 @@ const GroceryInvoiceApp = () => {
     setCustomerInfo({ name: "", phone: "", address: "" });
     setInvoiceNumber(`INV-${Date.now()}`);
     setError(null);
-    setValidationErrors({ name: "", phone: "" });
+    setSelectItemError(null);
+    setAddItemError(null);
+    setAddItemSuccess(null);
+    setValidationErrors({ name: "", phone: "", address: "" });
+    setNewItemValidationErrors({ name: "", price: "", stock: "" });
   };
 
   const saveAndDownloadInvoice = async () => {
     if (items.length === 0) {
-      alert("No items to generate invoice");
+      showPopup('warning', 'No Items', 'No items to generate invoice. Please add items to the cart first.');
       return;
     }
 
     // Validate customer info before saving
     const nameError = validateName(customerInfo.name);
     const phoneError = validatePhone(customerInfo.phone);
+    const addressError = validateAddress(customerInfo.address);
 
-    if (nameError || phoneError) {
-      setValidationErrors({ name: nameError, phone: phoneError });
-      alert("Please fix the validation errors before generating the invoice");
+    if (nameError || phoneError || addressError) {
+      setValidationErrors({ name: nameError, phone: phoneError, address: addressError });
+      showPopup('error', 'Validation Error', 'Please fix the validation errors before generating the invoice');
       return;
     }
 
@@ -270,9 +531,14 @@ const GroceryInvoiceApp = () => {
       }
 
       generatePdf();
-      resetInvoice();
+      showPopup('success', 'Invoice Downloaded Successfully', `Invoice ${invoiceNumber} has been saved and downloaded successfully!`, () => {
+        closePopup();
+        resetInvoice();
+      }, true);
+      
     } catch (error) {
       setError(`Error: ${error.message}`);
+      showPopup('error', 'Invoice Creation Error', `Error: ${error.message}`);
       console.error('Error creating invoice:', error);
     }
   };
@@ -324,6 +590,18 @@ const GroceryInvoiceApp = () => {
   return (
     <div className="app-container">
       {error && <div className="error-message text-red-500 text-center mb-4">{error}</div>}
+      
+      {/* Custom Popup */}
+      <CustomPopup
+        isOpen={popup.isOpen}
+        onClose={closePopup}
+        type={popup.type}
+        title={popup.title}
+        message={popup.message}
+        onConfirm={popup.onConfirm}
+        showConfirm={popup.showConfirm}
+      />
+      
       <div className="main-wrapper">
         <div className="header-card">
           <div className="header-content">
@@ -355,75 +633,96 @@ const GroceryInvoiceApp = () => {
                 <h2 className="section-title">Customer Details</h2>
               </div>
               <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="Customer Name"
-                  value={customerInfo.name}
-                  onChange={handleNameChange}
-                  className={`form-input ${validationErrors.name ? 'error' : ''}`}
-                />
-                {validationErrors.name && (
-                  <div className="validation-error">{validationErrors.name}</div>
-                )}
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={customerInfo.phone}
-                  onChange={handlePhoneChange}
-                  maxLength="10"
-                  className={`form-input ${validationErrors.phone ? 'error' : ''}`}
-                />
-                {validationErrors.phone && (
-                  <div className="validation-error">{validationErrors.phone}</div>
-                )}
-                <textarea
-                  placeholder="Address"
-                  value={customerInfo.address}
-                  onChange={(e) =>
-                    setCustomerInfo({
-                      ...customerInfo,
-                      address: e.target.value,
-                    })
-                  }
-                  className="form-textarea"
-                />
+                <div className="input-container">
+                  <input
+                    type="text"
+                    placeholder="Customer Name *"
+                    value={customerInfo.name}
+                    onChange={handleNameChange}
+                    className={`form-input ${validationErrors.name ? 'error' : ''}`}
+                    required
+                  />
+                  {validationErrors.name && (
+                    <div className="validation-error">{validationErrors.name}</div>
+                  )}
+                </div>
+                <div className="input-container">
+                  <input
+                    type="tel"
+                    placeholder="Phone Number *"
+                    value={customerInfo.phone}
+                    onChange={handlePhoneChange}
+                    maxLength="10"
+                    className={`form-input ${validationErrors.phone ? 'error' : ''}`}
+                    required
+                  />
+                  {validationErrors.phone && (
+                    <div className="validation-error">{validationErrors.phone}</div>
+                  )}
+                </div>
+                <div className="input-container">
+                  <textarea
+                    placeholder="Address *"
+                    value={customerInfo.address}
+                    onChange={handleAddressChange}
+                    className={`form-textarea ${validationErrors.address ? 'error' : ''}`}
+                    required
+                  />
+                  {validationErrors.address && (
+                    <div className="validation-error">{validationErrors.address}</div>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="add-item-card">
               <h2 className="section-title">Add New Grocery Item</h2>
+              {addItemError && <div className="component-error-message">{addItemError}</div>}
+              {addItemSuccess && <div className="component-success-message">{addItemSuccess}</div>}
               <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="Item Name"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, name: e.target.value })
-                  }
-                  className="form-input"
-                />
-                <input
-                  type="number"
-                  placeholder="Price (₹)"
-                  value={newItem.price}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, price: e.target.value })
-                  }
-                  className="form-input"
-                  min="0.01"
-                  step="0.01"
-                />
-                <input
-                  type="number"
-                  placeholder="Stock"
-                  value={newItem.stock}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, stock: e.target.value })
-                  }
-                  className="form-input"
-                  min="0"
-                  step="1"
-                />
+                <div className="input-container">
+                  <input
+                    type="text"
+                    placeholder="Item Name *"
+                    value={newItem.name}
+                    onChange={handleNewItemNameChange}
+                    className={`form-input ${newItemValidationErrors.name ? 'error' : ''}`}
+                    required
+                  />
+                  {newItemValidationErrors.name && (
+                    <div className="validation-error">{newItemValidationErrors.name}</div>
+                  )}
+                </div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    placeholder="Price (₹) *"
+                    value={newItem.price}
+                    onChange={handleNewItemPriceChange}
+                    className={`form-input ${newItemValidationErrors.price ? 'error' : ''}`}
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                  {newItemValidationErrors.price && (
+                    <div className="validation-error">{newItemValidationErrors.price}</div>
+                  )}
+                </div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    placeholder="Stock *"
+                    value={newItem.stock}
+                    onChange={handleNewItemStockChange}
+                    className={`form-input ${newItemValidationErrors.stock ? 'error' : ''}`}
+                    min="0"
+                    step="1"
+                    required
+                  />
+                  {newItemValidationErrors.stock && (
+                    <div className="validation-error">{newItemValidationErrors.stock}</div>
+                  )}
+                </div>
                 <button onClick={addGroceryItem} className="add-btn">
                   <span className="btn-icon">➕</span>
                   <span>Add Item to Inventory</span>
@@ -433,6 +732,7 @@ const GroceryInvoiceApp = () => {
 
             <div className="add-item-card">
               <h2 className="section-title">Select Item</h2>
+              {selectItemError && <div className="component-error-message">{selectItemError}</div>}
               <div className="form-group">
                 <select
                   className="form-input"
@@ -442,8 +742,11 @@ const GroceryInvoiceApp = () => {
                       groceryList.find((g) => g.id === parseInt(e.target.value))
                     )
                   }
+                  disabled={selectItemError}
                 >
-                  <option value="">-- Select Grocery Item --</option>
+                  <option value="">
+                    {selectItemError ? "Unable to load items" : "-- Select Grocery Item --"}
+                  </option>
                   {groceryList.map((g) => (
                     <option key={g.id} value={g.id} disabled={g.stock === 0}>
                       {g.name} - ₹{g.price} ({g.stock} in stock)
@@ -459,6 +762,7 @@ const GroceryInvoiceApp = () => {
                     value={quantity}
                     onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                     className="form-input half-width"
+                    disabled={selectItemError}
                   />
                   <input
                     type="number"
@@ -468,10 +772,20 @@ const GroceryInvoiceApp = () => {
                     className="form-input half-width"
                   />
                 </div>
-                <button onClick={addItem} className="add-btn">
+                <button 
+                  onClick={addItem} 
+                  className="add-btn"
+                  disabled={selectItemError}
+                >
                   <span className="btn-icon">➕</span>
                   <span>Add to Cart</span>
                 </button>
+                {selectItemError && (
+                  <button onClick={fetchGroceryItems} className="retry-btn">
+                    <span className="btn-icon">🔄</span>
+                    <span>Retry Loading Items</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -577,14 +891,6 @@ const GroceryInvoiceApp = () => {
                             Subtotal:
                           </span>
                           <span className="text-gray-800">
-                            ₹{calculateSubtotal().toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="summary-row flex justify-between py-2">
-                          <span className="text-gray-600 font-medium">
-                            Tax (18% GST):
-                          </span>
-                          <span className="text-gray-800">
                             ₹{calculateTax().toFixed(2)}
                           </span>
                         </div>
@@ -612,3 +918,4 @@ const GroceryInvoiceApp = () => {
 };
 
 export default GroceryInvoiceApp;
+                           
